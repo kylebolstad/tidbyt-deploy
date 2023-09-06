@@ -10,6 +10,7 @@ import axios_throttle from 'axios-request-throttle'
 import fs from 'fs'
 import * as child from 'child_process'
 import 'dotenv/config'
+import util from 'util'
 
 const DEFAULT_TIDBYT_CYCLE = 15
 const TIDBYT_CYCLE_MIN = 5
@@ -52,10 +53,19 @@ axios_throttle.use(axios, {
 let previous_hash = ''
 let installation_exists = false
 
-const deploy = () => {
+const print_log = (statement, options = {}) => {
     if (PRINT_LOG) {
-        console.log(Date())
+        let format = '%s'
+        if (options?.newline) format = '\n%s\n'
+
+        console.log(
+            util.format(format, util.format(statement, options?.args || ''))
+        )
     }
+}
+
+const deploy = () => {
+    print_log(Date(), { newline: true })
 
     const spawn_arguments = [
         'render',
@@ -70,9 +80,7 @@ const deploy = () => {
 
     render_pixlet.stdout.setEncoding('utf8')
     render_pixlet.stdout.on('data', (data) => {
-        if (PRINT_LOG) {
-            console.log(data)
-        }
+        print_log(data)
     })
 
     render_pixlet.on('close', async () => {
@@ -99,9 +107,7 @@ const deploy = () => {
                                     axios_config
                                 )
                                 .then((response) => {
-                                    if (PRINT_LOG) {
-                                        console.log(response.config.url)
-                                    }
+                                    print_log(response.config.url)
 
                                     if (fs.existsSync(webp)) {
                                         fs.unlink(webp, (error) => {
@@ -128,9 +134,7 @@ const deploy = () => {
                                     axios_config
                                 )
                                 .then((response) => {
-                                    if (PRINT_LOG) {
-                                        console.log(response.config.url)
-                                    }
+                                    print_log(response.config.url)
 
                                     if (response.status === '200') {
                                         installation_exists =
@@ -147,11 +151,9 @@ const deploy = () => {
                                                     axios_config
                                                 )
                                                 .then((response) => {
-                                                    if (PRINT_LOG) {
-                                                        console.log(
-                                                            response.config.url
-                                                        )
-                                                    }
+                                                    print_log(
+                                                        response.config.url
+                                                    )
 
                                                     if (
                                                         response.status ===
@@ -198,9 +200,10 @@ const deploy = () => {
 
         await process()
 
-        if (PRINT_LOG) {
-            console.log('\nnext deploy in %d seconds\n', tidbyt_cycle)
-        }
+        print_log('next deploy in %d seconds', {
+            newline: true,
+            args: tidbyt_cycle,
+        })
     })
 
     render_pixlet.on('error', (error) => {
