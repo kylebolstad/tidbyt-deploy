@@ -12,6 +12,7 @@ import * as child from 'child_process'
 import 'dotenv/config'
 
 const DEFAULT_TIDBYT_CYCLE = 15
+const TIDBYT_CYCLE_MIN = 5
 
 const render_parameters = []
 
@@ -37,18 +38,21 @@ Object.keys(process.env)
         })
     })
 
+const tidbyt_cycle =
+    Math.max(TIDBYT_CYCLE_MIN, eval(TIDBYT_CYCLE)) || DEFAULT_TIDBYT_CYCLE
+
 const axios_config = {
     headers: { Authorization: `Bearer ${TIDBYT_API_TOKEN}` },
 }
 
 axios_throttle.use(axios, {
-    requestsPerSecond: eval(TIDBYT_CYCLE) || DEFAULT_TIDBYT_CYCLE,
+    requestsPerSecond: tidbyt_cycle,
 })
 
 let previous_hash = ''
 let installation_exists = false
 
-const push = () => {
+const deploy = () => {
     if (PRINT_LOG) {
         console.log(Date())
     }
@@ -71,95 +75,132 @@ const push = () => {
         }
     })
 
-    render_pixlet.on('close', () => {
-        const webp = `${TIDBYT_APP_PATH}/${TIDBYT_APP_NAME}.webp`
+    render_pixlet.on('close', async () => {
+        const process = async () => {
+            const webp = `${TIDBYT_APP_PATH}/${TIDBYT_APP_NAME}.webp`
 
-        fs.readFile(webp, 'base64', (error, data) => {
-            const file_size = fs.existsSync(webp) && fs.statSync(webp).size
+            return new Promise((resolve, reject) => {
+                fs.readFile(webp, 'base64', (error, data) => {
+                    const file_size =
+                        fs.existsSync(webp) && fs.statSync(webp).size
 
-            if (data !== previous_hash) {
-                previous_hash = data
+                    if (data !== previous_hash) {
+                        previous_hash = data
 
-                if (file_size) {
-                    axios
-                        .post(
-                            `https://api.tidbyt.com/v0/devices/${TIDBYT_DEVICE_ID}/push`,
-                            {
-                                image: data,
-                                installationID: TIDBYT_INSTALLATION_ID,
-                                background: TIDBYT_BACKGROUND,
-                            },
-                            axios_config
-                        )
-                        .then((response) => {
-                            if (PRINT_LOG) {
-                                console.log(response.config.url)
-                            }
+                        if (file_size) {
+                            axios
+                                .post(
+                                    `https://api.tidbyt.com/v0/devices/${TIDBYT_DEVICE_ID}/push`,
+                                    {
+                                        image: data,
+                                        installationID: TIDBYT_INSTALLATION_ID,
+                                        background: TIDBYT_BACKGROUND,
+                                    },
+                                    axios_config
+                                )
+                                .then((response) => {
+                                    if (PRINT_LOG) {
+                                        console.log(response.config.url)
+                                    }
 
-                            if (fs.existsSync(webp)) {
-                                fs.unlink(webp, (error) => {
-                                    if (error) {
-                                        console.error(error)
+                                    if (fs.existsSync(webp)) {
+                                        fs.unlink(webp, (error) => {
+                                            if (error) {
+                                                console.error(error)
+                                            }
+                                        })
                                     }
                                 })
-                            }
-                        })
-                        .catch((error) => {
-                            console.error(error)
-                        })
-                } else {
-                    axios
-                        .get(
-                            `https://api.tidbyt.com/v0/devices/${TIDBYT_DEVICE_ID}/installations`,
-                            axios_config
-                        )
-                        .then((response) => {
-                            if (PRINT_LOG) {
-                                console.log(response.config.url)
-                            }
+                                .then(() => {
+                                    if (error) {
+                                        reject(error)
+                                    } else {
+                                        resolve(data)
+                                    }
+                                })
+                                .catch((error) => {
+                                    console.error(error)
+                                })
+                        } else {
+                            axios
+                                .get(
+                                    `https://api.tidbyt.com/v0/devices/${TIDBYT_DEVICE_ID}/installations`,
+                                    axios_config
+                                )
+                                .then((response) => {
+                                    if (PRINT_LOG) {
+                                        console.log(response.config.url)
+                                    }
 
-                            if (response.status === '200') {
-                                installation_exists =
-                                    response.data.installations.some(
-                                        (installation) =>
-                                            installation.id ===
-                                            TIDBYT_INSTALLATION_ID
-                                    )
+                                    if (response.status === '200') {
+                                        installation_exists =
+                                            response.data.installations.some(
+                                                (installation) =>
+                                                    installation.id ===
+                                                    TIDBYT_INSTALLATION_ID
+                                            )
 
-                                if (installation_exists) {
-                                    axios
-                                        .delete(
-                                            `https://api.tidbyt.com/v0/devices/${TIDBYT_DEVICE_ID}/installations/${TIDBYT_INSTALLATION_ID}`,
-                                            axios_config
-                                        )
-                                        .then((response) => {
-                                            if (PRINT_LOG) {
-                                                console.log(response.config.url)
-                                            }
+                                        if (installation_exists) {
+                                            axios
+                                                .delete(
+                                                    `https://api.tidbyt.com/v0/devices/${TIDBYT_DEVICE_ID}/installations/${TIDBYT_INSTALLATION_ID}`,
+                                                    axios_config
+                                                )
+                                                .then((response) => {
+                                                    if (PRINT_LOG) {
+                                                        console.log(
+                                                            response.config.url
+                                                        )
+                                                    }
 
-                                            if (response.status === '200') {
-                                                if (fs.existsSync(webp)) {
-                                                    fs.unlink(webp, (error) => {
-                                                        if (error)
-                                                            console.error(error)
-                                                    })
-                                                }
+                                                    if (
+                                                        response.status ===
+                                                        '200'
+                                                    ) {
+                                                        if (
+                                                            fs.existsSync(webp)
+                                                        ) {
+                                                            fs.unlink(
+                                                                webp,
+                                                                (error) => {
+                                                                    if (error)
+                                                                        console.error(
+                                                                            error
+                                                                        )
+                                                                }
+                                                            )
+                                                        }
 
-                                                installation_exists = false
-                                            }
-                                        })
-                                        .catch((error) => {
-                                            console.error(error)
-                                        })
-                                }
-                            }
-                        })
-                        .catch((error) => {
-                            console.error(error)
-                        })
-                }
-            }
-        })
+                                                        installation_exists = false
+                                                    }
+                                                })
+                                                .catch((error) => {
+                                                    console.error(error)
+                                                })
+                                        }
+                                    }
+                                })
+                                .then(() => {
+                                    if (error) {
+                                        reject(error)
+                                    } else {
+                                        resolve(data)
+                                    }
+                                })
+                                .catch((error) => {
+                                    console.error(error)
+                                })
+                        }
+                    }
+                })
+            })
+        }
+
+        await process()
+
+        if (PRINT_LOG) {
+            console.log('next deploy in %d seconds', tidbyt_cycle)
+        }
     })
 
     render_pixlet.on('error', (error) => {
@@ -167,11 +208,8 @@ const push = () => {
     })
 }
 
-setInterval(
-    () => {
-        push()
-    },
-    (eval(TIDBYT_CYCLE) || DEFAULT_TIDBYT_CYCLE) * 1000
-)
+setInterval(() => {
+    deploy()
+}, tidbyt_cycle * 1000)
 
-push()
+deploy()
