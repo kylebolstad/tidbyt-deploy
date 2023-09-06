@@ -199,7 +199,7 @@ const deploy = () => {
         await process()
 
         if (PRINT_LOG) {
-            console.log('\nnext deploy in %d seconds', tidbyt_cycle)
+            console.log('\nnext deploy in %d seconds\n', tidbyt_cycle)
         }
     })
 
