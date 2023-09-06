@@ -5,12 +5,12 @@
 
 // node scripts/deploy.js dotenv_config_path=.env
 
-import axios from 'axios'
-import axios_throttle from 'axios-request-throttle'
-import fs from 'fs'
-import * as child from 'child_process'
-import 'dotenv/config'
-import util from 'util'
+import axios from "axios"
+import axios_throttle from "axios-request-throttle"
+import fs from "fs"
+import * as child from "child_process"
+import "dotenv/config"
+import util from "util"
 
 const DEFAULT_TIDBYT_CYCLE = 15
 const TIDBYT_CYCLE_MIN = 5
@@ -18,16 +18,16 @@ const TIDBYT_CYCLE_MIN = 5
 const render_parameters = []
 
 Object.keys(process.env)
-    .slice(Object.keys(process.env).indexOf('_') + 1)
+    .slice(Object.keys(process.env).indexOf("_") + 1)
     .forEach((key) => {
         let value = process.env[key]
 
         if (value?.length) {
             render_parameters.push(`${key.toLowerCase()}=${value}`)
 
-            if (value.toLowerCase() === 'true') {
+            if (value.toLowerCase() === "true") {
                 value = true
-            } else if (value.toLowerCase() === 'false') {
+            } else if (value.toLowerCase() === "false") {
                 value = false
             }
         }
@@ -50,16 +50,16 @@ axios_throttle.use(axios, {
     requestsPerSecond: tidbyt_cycle,
 })
 
-let previous_hash = ''
+let previous_hash = ""
 let installation_exists = false
 
 const print_log = (statement, options = {}) => {
     if (PRINT_LOG) {
-        let format = '%s'
-        if (options?.newline) format = '\n%s\n'
+        let format = "%s"
+        if (options?.newline) format = "\n%s\n"
 
         console.log(
-            util.format(format, util.format(statement, options?.args || ''))
+            util.format(format, util.format(statement, options?.args || ""))
         )
     }
 }
@@ -68,7 +68,7 @@ const deploy = () => {
     print_log(Date(), { newline: true })
 
     const spawn_arguments = [
-        'render',
+        "render",
         `${TIDBYT_APP_PATH}/${TIDBYT_APP_NAME}.star`,
     ]
 
@@ -76,19 +76,19 @@ const deploy = () => {
         spawn_arguments.push(render_parameter)
     })
 
-    const render_pixlet = child.spawn('pixlet', spawn_arguments)
+    const render_pixlet = child.spawn("pixlet", spawn_arguments)
 
-    render_pixlet.stdout.setEncoding('utf8')
-    render_pixlet.stdout.on('data', (data) => {
+    render_pixlet.stdout.setEncoding("utf8")
+    render_pixlet.stdout.on("data", (data) => {
         print_log(data)
     })
 
-    render_pixlet.on('close', async () => {
+    render_pixlet.on("close", async () => {
         const process = async () => {
             const webp = `${TIDBYT_APP_PATH}/${TIDBYT_APP_NAME}.webp`
 
             return new Promise((resolve, reject) => {
-                fs.readFile(webp, 'base64', (error, data) => {
+                fs.readFile(webp, "base64", (error, data) => {
                     const file_size =
                         fs.existsSync(webp) && fs.statSync(webp).size
 
@@ -136,7 +136,7 @@ const deploy = () => {
                                 .then((response) => {
                                     print_log(response.config.url)
 
-                                    if (response.status === '200') {
+                                    if (response.status === "200") {
                                         installation_exists =
                                             response.data.installations.some(
                                                 (installation) =>
@@ -157,7 +157,7 @@ const deploy = () => {
 
                                                     if (
                                                         response.status ===
-                                                        '200'
+                                                        "200"
                                                     ) {
                                                         if (
                                                             fs.existsSync(webp)
@@ -200,13 +200,13 @@ const deploy = () => {
 
         await process()
 
-        print_log('next deploy in %d seconds', {
+        print_log("next deploy in %d seconds", {
             newline: true,
             args: tidbyt_cycle,
         })
     })
 
-    render_pixlet.on('error', (error) => {
+    render_pixlet.on("error", (error) => {
         console.error(error)
     })
 }
