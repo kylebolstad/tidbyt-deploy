@@ -11,6 +11,7 @@ import fs from "fs"
 import * as child from "child_process"
 import "dotenv/config"
 import util from "util"
+import pluralize from "pluralize"
 
 const DEFAULT_TIDBYT_CYCLE = 15
 const TIDBYT_CYCLE_MIN = 5
@@ -53,18 +54,14 @@ axios_throttle.use(axios, {
 let previous_hash = ""
 let installation_exists = false
 
-const print_log = (statement, options = {}) => {
+const print_log = (statement, args) => {
     if (PRINT_LOG) {
-        const format = "%s"
-
-        console.log(
-            util.format(format, util.format(statement, options?.args || ""))
-        )
+        console.log(util.format("%s", util.format(statement, args || "")))
     }
 }
 
 const deploy = () => {
-    print_log("started at: %s\n", { args: Date() })
+    print_log("started at: %s\n", Date())
 
     const spawn_arguments = [
         "render",
@@ -203,11 +200,12 @@ const deploy = () => {
 
         await process()
 
-        print_log("\nended at: %s", { args: Date(), newline: true })
+        print_log("\nended at: %s", Date())
 
-        print_log("\nnext deploy in %d seconds\n", {
-            args: tidbyt_cycle,
-        })
+        print_log(
+            "\nnext deploy in %s\n",
+            pluralize("second", tidbyt_cycle, true)
+        )
     })
 
     render_pixlet.on("error", (error) => {
