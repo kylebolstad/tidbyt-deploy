@@ -55,8 +55,7 @@ let installation_exists = false
 
 const print_log = (statement, options = {}) => {
     if (PRINT_LOG) {
-        let format = "%s"
-        if (options?.newline) format = "\n%s\n"
+        const format = "%s"
 
         console.log(
             util.format(format, util.format(statement, options?.args || ""))
@@ -65,7 +64,7 @@ const print_log = (statement, options = {}) => {
 }
 
 const deploy = () => {
-    print_log(Date(), { newline: true })
+    print_log("started at: %s\n", { args: Date() })
 
     const spawn_arguments = [
         "render",
@@ -193,6 +192,10 @@ const deploy = () => {
                                     console.error(error)
                                 })
                         }
+                    } else if (error) {
+                        reject(error)
+                    } else {
+                        resolve(data)
                     }
                 })
             })
@@ -200,8 +203,9 @@ const deploy = () => {
 
         await process()
 
-        print_log("next deploy in %d seconds", {
-            newline: true,
+        print_log("\nended at: %s", { args: Date(), newline: true })
+
+        print_log("\nnext deploy in %d seconds\n", {
             args: tidbyt_cycle,
         })
     })
