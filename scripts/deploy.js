@@ -11,7 +11,7 @@ import fs from "fs"
 import * as child from "child_process"
 import "dotenv/config"
 import util from "util"
-import pluralize from "pluralize"
+import ms from "ms"
 
 const DEFAULT_TIDBYT_CYCLE = 15
 const TIDBYT_CYCLE_MIN = 5
@@ -204,7 +204,7 @@ const deploy = () => {
 
         print_log(
             "\nnext deploy in %s\n",
-            pluralize("second", tidbyt_cycle, true)
+            ms(tidbyt_cycle * 1000, { long: true })
         )
     })
 
